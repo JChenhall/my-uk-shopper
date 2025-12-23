@@ -1,0 +1,10 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-[#F0F2FF] antialiased;
+  /* Prevents rubber-banding on mobile while keeping it feel native */
+  overscroll-behavior-y: none;
+}
