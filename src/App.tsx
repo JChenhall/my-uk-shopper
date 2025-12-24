@@ -214,22 +214,39 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white p-8 rounded-[32px] shadow-cartoon border-2 border-white text-center">
+                <div className="bg-white p-8 rounded-[32px] shadow-cartoon border-2 border-white text-center space-y-6">
                   <img
                     src="https://illustrations.popsy.co/violet/shopping-bag.svg"
                     className="w-48 mx-auto mb-4"
                     alt=""
                   />
-                  <h2 className="text-xl font-black mb-2">No active list</h2>
-                  <p className="text-slate-400 text-sm mb-6">
-                    Start planning your supermarket shop
-                  </p>
-                  <button
-                    onClick={() => setActiveTab("stores")}
-                    className="bg-brand-primary text-white px-8 py-4 rounded-2xl font-bold shadow-lg flex items-center gap-2 mx-auto hover:bg-brand-primary/90 transition-colors"
-                  >
-                    <Store size={20} /> Plan Your Next Shop
-                  </button>
+                  <div>
+                    <h2 className="text-xl font-black mb-2">No active list</h2>
+                    <p className="text-slate-400 text-sm mb-6">
+                      Start planning your supermarket shop
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => setActiveTab("stores")}
+                      className="w-full bg-brand-primary text-white px-8 py-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-brand-primary/90 transition-colors"
+                    >
+                      <Store size={22} /> Plan New Shop
+                    </button>
+                    
+                    {pastLists && pastLists.length > 0 && (
+                      <button
+                        onClick={() => handleReuseList(pastLists[0].id!)}
+                        className="w-full bg-emerald-500 text-white px-8 py-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Recreate Last Shop
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 

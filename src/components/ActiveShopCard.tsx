@@ -52,14 +52,14 @@ export const ActiveShopCard = ({
           <div key={item.id} className="flex items-start gap-4 group">
             <button
               onClick={() => onToggle(item.id, item.done)}
-              className={`mt-1 w-7 h-7 rounded-md border-3 border-slate-400 flex items-center justify-center transition-all flex-shrink-0 ${
+              className={`mt-1 w-9 h-9 rounded-lg border-3 border-slate-400 flex items-center justify-center transition-all flex-shrink-0 ${
                 item.done
                   ? "bg-green-500 border-green-600 rotate-12"
                   : "bg-white hover:border-slate-600"
               }`}
             >
               {item.done && (
-                <Check size={18} className="text-white" strokeWidth={3} />
+                <Check size={22} className="text-white" strokeWidth={3} />
               )}
             </button>
 
@@ -72,7 +72,7 @@ export const ActiveShopCard = ({
                 {item.product?.name || "Unknown item"}
               </span>
               {item.product?.brand && (
-                <span className="font-['Gochi_Hand'] text-sm text-slate-400 block mt-0.5">
+                <span className="font-['Gochi_Hand'] text-base text-slate-400 block mt-1">
                   {item.product.brand}
                 </span>
               )}
@@ -81,9 +81,9 @@ export const ActiveShopCard = ({
             {!item.done && (
               <button
                 onClick={() => onScan(item.barcode)}
-                className="p-2 text-slate-300 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-colors flex-shrink-0"
+                className="p-3 text-slate-300 hover:text-brand-primary hover:bg-brand-primary/5 rounded-xl transition-colors flex-shrink-0"
               >
-                <ScanBarcode size={22} />
+                <ScanBarcode size={24} />
               </button>
             )}
           </div>

@@ -38,6 +38,7 @@ export interface SavedItem {
   barcode: string;
   storeName: string;
   savedAt: number;
+  category?: string;
 }
 export interface CachedSearchResult {
   id?: number;
@@ -89,6 +90,16 @@ export class ShopSmartDB extends Dexie {
       lists: "++id, name, storeName, completedAt, createdAt",
       shoppingList: "++id, listId, barcode, done, [listId+barcode]",
       savedItems: "++id, [barcode+storeName], storeName",
+      cachedSearchResults: "++id, [storeName+searchQuery], storeName, cachedAt",
+    });
+    
+    // Version 6 - add category to savedItems
+    this.version(6).stores({
+      products: "++id, barcode, name, *potentialStores",
+      prices: "++id, barcode, store, [barcode+store]",
+      lists: "++id, name, storeName, completedAt, createdAt",
+      shoppingList: "++id, listId, barcode, done, [listId+barcode]",
+      savedItems: "++id, [barcode+storeName], storeName, category",
       cachedSearchResults: "++id, [storeName+searchQuery], storeName, cachedAt",
     });
   }

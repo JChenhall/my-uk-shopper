@@ -12,9 +12,11 @@ import {
   Trash2,
   Search,
   Camera,
+  CheckSquare,
 } from "lucide-react";
 import { db } from "../lib/db";
 import { ManualProductModal } from "./ManualProductModal";
+import { CATEGORIES, getCategoryForProduct } from "../lib/categories";
 
 interface StorePlanningProps {
   storeName: string;
@@ -202,12 +204,16 @@ export const StorePlanningView = ({
       });
     } else {
       // Add new product
+      const category = getCategoryForProduct(
+        p.product_name || "",
+        p.categories
+      );
       await db.products.add({
         barcode: p.code,
         name: p.product_name || "Unknown",
         brand: p.brands || "Generic",
         image: p.image_small_url || "",
-        category: "General",
+        category: category,
         potentialStores: [storeName],
       });
     }
@@ -219,10 +225,12 @@ export const StorePlanningView = ({
       .first();
 
     if (!exists) {
+      const product = await db.products.where("barcode").equals(p.code).first();
       await db.savedItems.add({
         barcode: p.code,
         storeName: storeName,
         savedAt: Date.now(),
+        category: product?.category,
       });
     }
   };
@@ -273,6 +281,26 @@ export const StorePlanningView = ({
     );
   });
 
+  // Group saved items by category
+  const groupedSavedItems = filteredSavedItems?.reduce((acc, item) => {
+    const category = item.category || "Other";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(item);
+    return acc;
+  }, {} as Record<string, typeof filteredSavedItems>);
+
+  // Select all saved items
+  const selectAllSaved = () => {
+    if (filteredSavedItems) {
+      const allBarcodes = new Set(
+        filteredSavedItems.map((item) => item.barcode)
+      );
+      setSelectedBarcodes(allBarcodes);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F9FF] pb-40">
       <div className="sticky top-0 z-40 bg-[#F8F9FF]/80 backdrop-blur-md p-6">
@@ -290,13 +318,24 @@ export const StorePlanningView = ({
               Est. Total: £{totalEstimate.toFixed(2)}
             </p>
           </div>
-          <button
-            disabled={selectedBarcodes.size === 0}
-            onClick={generateList}
-            className="bg-brand-primary text-white px-6 py-4 rounded-2xl font-bold shadow-xl disabled:opacity-30 transition-opacity"
-          >
-            Generate List ({selectedBarcodes.size})
-          </button>
+          <div className="flex gap-2">
+            {view === "saved" && filteredSavedItems && filteredSavedItems.length > 0 && (
+              <button
+                onClick={selectAllSaved}
+                className="bg-emerald-500 text-white px-4 py-3 rounded-2xl font-bold shadow-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 text-sm"
+              >
+                <CheckSquare size={18} />
+                Add All
+              </button>
+            )}
+            <button
+              disabled={selectedBarcodes.size === 0}
+              onClick={generateList}
+              className="bg-brand-primary text-white px-6 py-4 rounded-2xl font-bold shadow-xl disabled:opacity-30 transition-opacity"
+            >
+              Generate List ({selectedBarcodes.size})
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-2 mt-6 bg-slate-100 p-1 rounded-2xl">
@@ -388,19 +427,48 @@ export const StorePlanningView = ({
         )}
       </div>
 
-      <div className="px-6 grid grid-cols-2 gap-4">
+      <div className="px-6">
         {view === "saved" ? (
-          filteredSavedItems && filteredSavedItems.length > 0 ? (
-            filteredSavedItems.map((item) => (
-              <ProductGridItem
-                key={item.barcode}
-                item={item}
-                isSelected={selectedBarcodes.has(item.barcode)}
-                onToggle={() => toggleSelection(item.barcode)}
-                onRemove={() => removeFromCatalog(item.barcode)}
-                isSavedView
-              />
-            ))
+          groupedSavedItems && Object.keys(groupedSavedItems).length > 0 ? (
+            <>
+              {CATEGORIES.map((category) => {
+                const items = groupedSavedItems[category.name];
+                if (!items || items.length === 0) return null;
+
+                return (
+                  <div key={category.name} className="mb-8">
+                    {/* Category Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`${category.color} p-2 rounded-xl`}>
+                        <span className="text-2xl">{category.icon}</span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black text-slate-800">
+                          {category.name}
+                        </h3>
+                        <p className="text-xs text-slate-400 font-medium">
+                          {items.length} {items.length === 1 ? "item" : "items"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Category Items Grid */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {items.map((item) => (
+                        <ProductGridItem
+                          key={item.barcode}
+                          item={item}
+                          isSelected={selectedBarcodes.has(item.barcode)}
+                          onToggle={() => toggleSelection(item.barcode)}
+                          onRemove={() => removeFromCatalog(item.barcode)}
+                          isSavedView
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
           ) : (
             <div className="col-span-2 py-20 text-center">
               <p className="text-slate-400 font-bold">
@@ -410,47 +478,51 @@ export const StorePlanningView = ({
               </p>
             </div>
           )
-        ) : loadingApi ? (
-          <div className="col-span-2 py-20 flex flex-col items-center gap-4">
-            <Loader2 className="animate-spin text-brand-primary" size={32} />
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Searching Open Food Facts...
-            </p>
-          </div>
-        ) : searchQuery.length < 2 ? (
-          <div className="col-span-2 py-20 text-center">
-            <Search className="mx-auto mb-4 text-slate-300" size={48} />
-            <p className="text-slate-400 font-bold">
-              Search for products to get started
-            </p>
-            <p className="text-xs text-slate-400 mt-2">
-              Try "beans", "heinz", "flour", etc.
-            </p>
-          </div>
-        ) : filteredApiProducts.length > 0 ? (
-          filteredApiProducts.map((p) => (
-            <ProductGridItem
-              key={p.code}
-              item={{
-                barcode: p.code,
-                name: p.product_name,
-                image: p.image_small_url,
-                brand: p.brands,
-              }}
-              isSelected={false}
-              onToggle={() => {}}
-              onSave={() => saveToCatalog(p)}
-              isSavedView={false}
-            />
-          ))
         ) : (
-          <div className="col-span-2 py-20 text-center">
-            <p className="text-slate-400 font-bold">
-              No items found for "{searchQuery}"
-            </p>
-            <p className="text-xs text-slate-400 mt-2">
-              Try a different search term
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            {loadingApi ? (
+              <div className="col-span-2 py-20 flex flex-col items-center gap-4">
+                <Loader2 className="animate-spin text-brand-primary" size={32} />
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Searching Open Food Facts...
+                </p>
+              </div>
+            ) : searchQuery.length < 2 ? (
+              <div className="col-span-2 py-20 text-center">
+                <Search className="mx-auto mb-4 text-slate-300" size={48} />
+                <p className="text-slate-400 font-bold">
+                  Search for products to get started
+                </p>
+                <p className="text-xs text-slate-400 mt-2">
+                  Try "beans", "heinz", "flour", etc.
+                </p>
+              </div>
+            ) : filteredApiProducts.length > 0 ? (
+              filteredApiProducts.map((p) => (
+                <ProductGridItem
+                  key={p.code}
+                  item={{
+                    barcode: p.code,
+                    name: p.product_name,
+                    image: p.image_small_url,
+                    brand: p.brands,
+                  }}
+                  isSelected={false}
+                  onToggle={() => {}}
+                  onSave={() => saveToCatalog(p)}
+                  isSavedView={false}
+                />
+              ))
+            ) : (
+              <div className="col-span-2 py-20 text-center">
+                <p className="text-slate-400 font-bold">
+                  No items found for "{searchQuery}"
+                </p>
+                <p className="text-xs text-slate-400 mt-2">
+                  Try a different search term
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -491,7 +563,7 @@ const ProductGridItem = ({
   <motion.div
     whileTap={{ scale: 0.95 }}
     onClick={isSavedView ? onToggle : undefined}
-    className={`relative bg-white p-4 rounded-[24px] transition-all duration-300 shadow-cartoon ${
+    className={`relative bg-white p-5 rounded-[24px] transition-all duration-300 shadow-cartoon ${
       isSavedView
         ? isSelected
           ? "border-4 border-brand-primary ring-4 ring-brand-primary/20 brightness-110 scale-[1.02] cursor-pointer"
@@ -501,20 +573,20 @@ const ProductGridItem = ({
   >
     <img
       src={item.image || "https://illustrations.popsy.co/violet/box.svg"}
-      className="w-full h-28 object-contain mb-3"
+      className="w-full h-32 object-contain mb-4"
       alt=""
     />
-    <h3 className="font-bold text-[11px] leading-tight h-8 line-clamp-2 text-slate-800">
+    <h3 className="font-bold text-sm leading-tight h-10 line-clamp-2 text-slate-800">
       {item.name || "Unknown Item"}
     </h3>
 
-    <div className="mt-3 flex justify-between items-center">
+    <div className="mt-4 flex justify-between items-center">
       <div>
-        <div className="text-sm font-black text-slate-900">
+        <div className="text-base font-black text-slate-900">
           {item.lastPrice ? `£${item.lastPrice.toFixed(2)}` : "No Price"}
         </div>
         {item.lastDate && (
-          <div className="text-[9px] text-slate-400 font-medium">
+          <div className="text-xs text-slate-400 font-medium">
             {new Date(item.lastDate).toLocaleDateString("en-GB", {
               day: "numeric",
               month: "short",
@@ -529,9 +601,9 @@ const ProductGridItem = ({
             e.stopPropagation();
             onRemove();
           }}
-          className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+          className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
         >
-          <Trash2 size={16} />
+          <Trash2 size={20} />
         </button>
       ) : (
         <button
@@ -539,9 +611,9 @@ const ProductGridItem = ({
             e.stopPropagation();
             onSave();
           }}
-          className="p-1.5 text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white rounded-lg transition-colors"
+          className="p-2.5 text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white rounded-xl transition-colors"
         >
-          <Plus size={16} />
+          <Plus size={20} />
         </button>
       )}
     </div>
@@ -549,9 +621,9 @@ const ProductGridItem = ({
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        className="absolute -top-2 -right-2 bg-brand-primary text-white p-2 rounded-full shadow-lg"
+        className="absolute -top-3 -right-3 bg-brand-primary text-white p-3 rounded-full shadow-lg"
       >
-        <Check size={16} strokeWidth={3} />
+        <Check size={20} strokeWidth={3} />
       </motion.div>
     )}
   </motion.div>

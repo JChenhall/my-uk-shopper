@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Camera, Loader2, Check } from "lucide-react";
 import { db } from "../lib/db";
+import { CATEGORIES, type CategoryName } from "../lib/categories";
 
 interface ManualProductModalProps {
   storeName: string;
@@ -18,6 +19,7 @@ export const ManualProductModal = ({
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
   const [price, setPrice] = useState("");
+  const [category, setCategory] = useState<CategoryName>("Other");
   const [image, setImage] = useState("");
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,7 +51,7 @@ export const ManualProductModal = ({
         name: name.trim(),
         brand: brand.trim() || "Unknown",
         image: image || "https://via.placeholder.com/150?text=No+Image",
-        category: "Manual Entry",
+        category: category,
         potentialStores: [storeName],
       });
 
@@ -58,6 +60,7 @@ export const ManualProductModal = ({
         barcode: manualBarcode,
         storeName,
         savedAt: Date.now(),
+        category: category,
       });
 
       // Add price if provided
@@ -180,6 +183,30 @@ export const ManualProductModal = ({
                 placeholder="e.g., Tesco Finest"
                 className="w-full px-4 py-3 bg-white rounded-2xl border-2 border-slate-200 font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-brand-primary transition-colors"
               />
+            </div>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-700">
+                Category
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.name}
+                    type="button"
+                    onClick={() => setCategory(cat.name)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl font-medium text-sm transition-all ${
+                      category === cat.name
+                        ? `${cat.color} border-2 border-brand-primary`
+                        : "bg-slate-50 border-2 border-slate-100"
+                    }`}
+                  >
+                    <span className="text-lg">{cat.icon}</span>
+                    <span className="text-xs">{cat.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Price */}
