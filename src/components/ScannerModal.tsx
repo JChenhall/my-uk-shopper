@@ -72,7 +72,19 @@ export const ScannerModal = ({ isOpen, onClose }: ScannerModalProps) => {
     if (isOpen && isScanning) {
       const scanner = new Html5QrcodeScanner(
         "reader",
-        { fps: 10, qrbox: { width: 250, height: 150 } },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 150 },
+          aspectRatio: 1.0,
+          showTorchButtonIfSupported: true,
+          showZoomSliderIfSupported: true,
+          defaultZoomValueIfSupported: 2,
+          videoConstraints: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        },
         false
       );
 
